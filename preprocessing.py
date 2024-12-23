@@ -217,11 +217,19 @@ elif menu == "Normalisasi & Penyeimbangan":
 elif menu == "Proses manual":
     imputation_options = ["KNN", "Rata-rata"]
     selected_imputation = st.selectbox("Pilih Metode Imputasi", imputation_options)
+    imputation_options = ['10','20','30']
+    selected_imputation = st.selectbox("Pilih Metode Imputasi", imputation_options)
     if selected_imputation == "KNN":
         X_resampled, y_resampled = X_knn_resampled, y_knn_resampled
     else:
         X_resampled, y_resampled = X_rata_resampled, y_rata_resampled
-    X_train, X_test, y_train, y_test = train_test_split(X_resampled, y_resampled, test_size=0.2, random_state=42)
+    
+    if selected_test == "10":
+        X_train, X_test, y_train, y_test = train_test_split(X_resampled, y_resampled, test_size=0.1, random_state=42)
+    elif selected_test == "20":
+        X_train, X_test, y_train, y_test = train_test_split(X_resampled, y_resampled, test_size=0.2, random_state=42)
+    else:
+        X_train, X_test, y_train, y_test = train_test_split(X_resampled, y_resampled, test_size=0.3, random_state=42)
     # Fungsi untuk menghitung Gini Index
     def gini_index(groups, classes):
         total_instances = sum([len(group) for group in groups])
