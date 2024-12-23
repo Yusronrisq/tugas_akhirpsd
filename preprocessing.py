@@ -218,7 +218,7 @@ elif menu == "Proses manual":
     imputation_options = ["KNN", "Rata-rata"]
     selected_imputation = st.selectbox("Pilih Metode Imputasi", imputation_options)
     imputation_options = ['10','20','30']
-    selected_imputation = st.selectbox("Pilih Metode Imputasi", imputation_options)
+    selected_test = st.selectbox("Pilih Metode Imputasi", imputation_options)
     if selected_imputation == "KNN":
         X_resampled, y_resampled = X_knn_resampled, y_knn_resampled
     else:
