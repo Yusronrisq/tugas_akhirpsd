@@ -10,6 +10,7 @@ from sklearn.neighbors import KNeighborsClassifier
 from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score, confusion_matrix
 import seaborn as sns
 import matplotlib.pyplot as plt
+import numpy as np
 
 # Streamlit configuration
 st.title("Klasifikasi Kualitas Air")
@@ -17,7 +18,7 @@ st.title("Klasifikasi Kualitas Air")
 # Sidebar configuration
 menu = st.sidebar.selectbox(
     "Pilih Bagian",
-    ("Deskripsi Dataset", "Imputasi Data", "Normalisasi & Penyeimbangan", "Evaluasi Model", "Perbandingan Model")
+    ("Deskripsi Dataset", "Imputasi Data", "Normalisasi & Penyeimbangan","Proses manual", "Evaluasi Model", "Perbandingan Model")
 )
 
 # Upload Dataset
@@ -213,6 +214,147 @@ elif menu == "Normalisasi & Penyeimbangan":
     st.write("kemudian data di seimbangkan menggunakan SMOTE, Distribusi setelah penyeimbangan:")
     st.write(pd.Series(y_knn_resampled).value_counts())
 
+elif menu == "Proses manual":
+    imputation_options = ["KNN", "Rata-rata"]
+    selected_imputation = st.selectbox("Pilih Metode Imputasi", imputation_options)
+    if selected_imputation == "KNN":
+        X_resampled, y_resampled = X_knn_resampled, y_knn_resampled
+    else:
+        X_resampled, y_resampled = X_rata_resampled, y_rata_resampled
+    X_train, X_test, y_train, y_test = train_test_split(X_resampled, y_resampled, test_size=0.2, random_state=42)
+    # Fungsi untuk menghitung Gini Index
+    def gini_index(groups, classes):
+        total_instances = sum([len(group) for group in groups])
+        gini = 0.0
+
+        for group in groups:
+            size = len(group)
+            if size == 0:
+                continue
+
+            score = 0.0
+            for class_val in classes:
+                proportion = [row[-1] for row in group].count(class_val) / size
+                score += proportion ** 2
+
+            gini += (1.0 - score) * (size / total_instances)
+
+        return gini
+
+    # Membagi data berdasarkan nilai split
+    def split_data(index, value, dataset):
+        left, right = [], []
+        for row in dataset:
+            if row[index] < value:
+                left.append(row)
+            else:
+                right.append(row)
+        return left, right
+
+    # Memilih split terbaik
+    def get_best_split(dataset):
+        class_values = list(set(row[-1] for row in dataset))
+        best_index, best_value, best_score, best_groups = None, None, float('inf'), None
+
+        for index in range(len(dataset[0]) - 1):
+            for row in dataset:
+                groups = split_data(index, row[index], dataset)
+                gini = gini_index(groups, class_values)
+                st.write(f"Evaluating split: Feature[{index}], Value[{row[index]}], Gini[{gini}]")
+                if gini < best_score:
+                    best_index, best_value, best_score, best_groups = index, row[index], gini, groups
+                    st.write(f"Best split updated: Feature[{best_index}], Value[{best_value}], Gini[{best_score}]")
+
+        return {'index': best_index, 'value': best_value, 'groups': best_groups}
+
+    # Membuat leaf node
+    def to_terminal(group):
+        outcomes = [row[-1] for row in group]
+        return max(set(outcomes), key=outcomes.count)
+
+    # Membagi node
+    def split(node, max_depth, min_size, depth):
+        left, right = node['groups']
+        del(node['groups'])
+
+        st.write(f"Splitting at depth {depth}: Left size[{len(left)}], Right size[{len(right)}]")
+
+        if not left or not right:
+            node['left'] = node['right'] = to_terminal(left + right)
+            st.write(f"Leaf node created with value: {node['left']}")
+            return
+
+        if depth >= max_depth:
+            node['left'], node['right'] = to_terminal(left), to_terminal(right)
+            st.write(f"Max depth reached. Creating leaf nodes: Left[{node['left']}], Right[{node['right']}]")
+            return
+
+        if len(left) <= min_size:
+            node['left'] = to_terminal(left)
+            st.write(f"Left group too small. Creating leaf node: {node['left']}")
+        else:
+            node['left'] = get_best_split(left)
+            split(node['left'], max_depth, min_size, depth + 1)
+
+        if len(right) <= min_size:
+            node['right'] = to_terminal(right)
+            st.write(f"Right group too small. Creating leaf node: {node['right']}")
+        else:
+            node['right'] = get_best_split(right)
+            split(node['right'], max_depth, min_size, depth + 1)
+
+    # Membangun decision tree
+    def build_tree(train, max_depth, min_size):
+        root = get_best_split(train)
+        split(root, max_depth, min_size, 1)
+        return root
+
+    # Prediksi menggunakan decision tree
+    def predict(node, row):
+        if row[node['index']] < node['value']:
+            if isinstance(node['left'], dict):
+                return predict(node['left'], row)
+            else:
+                return node['left']
+        else:
+            if isinstance(node['right'], dict):
+                return predict(node['right'], row)
+            else:
+                return node['right']
+
+    X_train = np.array(X_train)
+    y_train = np.array(y_train)
+    X_test = np.array(X_test)
+    y_test = np.array(y_test)
+    data = [X_train[i] + [y_train[i]] for i in range(len(X_train))]
+    data = data[:3]
+    sample = [X_test[i] + [y_test[i]] for i in range(len(X_test))]
+
+    # Membuat decision tree
+    max_depth = 3
+    min_size = 1
+    tree = build_tree(data, max_depth, min_size)
+    st.write("\nFinal Decision Tree:", tree)
+
+    # Prediksi contoh
+    result = predict(tree, sample)
+    st.write("\nPrediction for sample:", result)
+    y_pred = model.predict(X_test)
+    # Evaluasi model
+    st.markdown("### Evaluasi Model")
+    st.write(f"Model: decesion tree dengan Imputasi: {selected_imputation}")
+    accuracy = accuracy_score(y_test, y_pred)
+    precision = precision_score(y_test, y_pred, zero_division=1)
+    recall = recall_score(y_test, y_pred, zero_division=1)
+    f1 = f1_score(y_test, y_pred, zero_division=1)
+    st.write(f"Accuracy: {accuracy:.2f}")
+    st.write(f"Precision: {precision:.2f}")
+    st.write(f"Recall: {recall:.2f}")
+    st.write(f"F1 Score: {f1:.2f}")
+    # Confusion Matrix
+    st.markdown("### Confusion Matrix")
+    cm = confusion_matrix(y_test, y_pred)
+    st.write(cm)
 elif menu == "Evaluasi Model":
     X_resampled, y_resampled = X_rata_resampled, y_rata_resampled
     st.write("## Splitting Data")
