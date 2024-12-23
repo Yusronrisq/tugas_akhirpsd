@@ -15,8 +15,7 @@ import matplotlib.pyplot as plt
 st.title("Klasifikasi Kualitas Air")
 
 # Sidebar configuration
-st.sidebar.title("Navigasi")
-menu = st.sidebar.radio(
+menu = st.sidebar.selectbox(
     "Pilih Bagian",
     ("Deskripsi Dataset", "Imputasi Data", "Normalisasi & Penyeimbangan", "Evaluasi Model", "Perbandingan Model")
 )
@@ -215,148 +214,44 @@ elif menu == "Normalisasi & Penyeimbangan":
     st.write(pd.Series(y_knn_resampled).value_counts())
 
 elif menu == "Evaluasi Model":
-    st.write("## splitting data")
-    X_train, X_test, y_train, y_test = train_test_split(X_knn_resampled, y_knn_resampled, test_size=0.2, random_state=42)
+    X_resampled, y_resampled = X_rata_resampled, y_rata_resampled
+    st.write("## Splitting Data")
+    X_train, X_test, y_train, y_test = train_test_split(X_resampled, y_resampled, test_size=0.2, random_state=42)
     st.write(f"Jumlah data training: {len(X_train)}")
     st.write(f"Jumlah data testing: {len(X_test)}")
-    #menggunakan decisiontree imputan KNN
-    X_train, X_test, y_train, y_test = train_test_split(X_knn_resampled, y_knn_resampled, test_size=0.2, random_state=42)
-    # Decision Tree Model
-    model = DecisionTreeClassifier()
+    st.write("## Modeling data")
+    model_options = ["Decision Tree", "Naive Bayes", "KNN"]
+    imputation_options = ["KNN", "Rata-rata"]
+    selected_model = st.selectbox("Pilih Metode Model", model_options)
+    selected_imputation = st.selectbox("Pilih Metode Imputasi", imputation_options)
+    if selected_imputation == "KNN":
+        X_resampled, y_resampled = X_knn_resampled, y_knn_resampled
+    else:
+        X_resampled, y_resampled = X_rata_resampled, y_rata_resampled
+    # Pemilihan model
+    if selected_model == "Decision Tree":
+        model = DecisionTreeClassifier()
+    elif selected_model == "Naive Bayes":
+        model = GaussianNB()
+    elif selected_model == "KNN":
+        model = KNeighborsClassifier(n_neighbors=3)
+    # Training model
     model.fit(X_train, y_train)
     y_pred = model.predict(X_test)
-
-    # Metrics
+    # Evaluasi model
     st.markdown("### Evaluasi Model")
-    st.markdown("### Model menggunakan decision tree dengan imputan KNN")
-    accuracy_1 = accuracy_score(y_test, y_pred)
-    precision_1 = precision_score(y_test, y_pred)
-    recall_1 = recall_score(y_test, y_pred)
-    f1_1 = f1_score(y_test, y_pred)
-
-    st.write(f"Accuracy: {accuracy_1:.2f}")
-    st.write(f"Precision: {precision_1:.2f}")
-    st.write(f"Recall: {recall_1:.2f}")
-    st.write(f"F1 Score: {f1_1:.2f}")
-
+    st.write(f"Model: {selected_model} dengan Imputasi: {selected_imputation}")
+    accuracy = accuracy_score(y_test, y_pred)
+    precision = precision_score(y_test, y_pred, zero_division=1)
+    recall = recall_score(y_test, y_pred, zero_division=1)
+    f1 = f1_score(y_test, y_pred, zero_division=1)
+    st.write(f"Accuracy: {accuracy:.2f}")
+    st.write(f"Precision: {precision:.2f}")
+    st.write(f"Recall: {recall:.2f}")
+    st.write(f"F1 Score: {f1:.2f}")
     # Confusion Matrix
     st.markdown("### Confusion Matrix")
     cm = confusion_matrix(y_test, y_pred)
     st.write(cm)
-
-    #menggunakan decision tree dengan imputan rata
-    X_train, X_test, y_train, y_test = train_test_split(X_rata_resampled, y_rata_resampled, test_size=0.2, random_state=42)
-    st.markdown("### Model menggunakan decision tree dengan imputan rata-rata")
-    # Decision Tree Model
-    model = DecisionTreeClassifier()
-    model.fit(X_train, y_train)
-    y_pred = model.predict(X_test)
-
-    # Metrics
-    accuracy_2 = accuracy_score(y_test, y_pred)
-    precision_2 = precision_score(y_test, y_pred)
-    recall_2 = recall_score(y_test, y_pred)
-    f1_2 = f1_score(y_test, y_pred)
-
-    st.write(f"Accuracy: {accuracy_2:.2f}")
-    st.write(f"Precision: {precision_2:.2f}")
-    st.write(f"Recall: {recall_2:.2f}")
-    st.write(f"F1 Score: {f1_2:.2f}")
-
-    # Confusion Matrix
-    st.markdown("### Confusion Matrix")
-    cm = confusion_matrix(y_test, y_pred)
-    st.write(cm)
-
-    #menggunakan naive bayes dengan imputan KNN
-    st.markdown("### Model menggunakan Naive bayes dengan imputan KNN")
-    X_train, X_test, y_train, y_test = train_test_split(X_knn_resampled, y_knn_resampled, test_size=0.2, random_state=42)
-    # Decision Tree Model
-    model = GaussianNB()
-    model.fit(X_train, y_train)
-    y_pred = model.predict(X_test)
-
-    # Metrics
-    accuracy_3 = accuracy_score(y_test, y_pred)
-    precision_3 = precision_score(y_test, y_pred)
-    recall_3 = recall_score(y_test, y_pred)
-    f1_3 = f1_score(y_test, y_pred)
-
-    st.write(f"Accuracy: {accuracy_3:.2f}")
-    st.write(f"Precision: {precision_3:.2f}")
-    st.write(f"Recall: {recall_3:.2f}")
-    st.write(f"F1 Score: {f1_3:.2f}")
-
-    # Confusion Matrix
-    st.markdown("### Confusion Matrix")
-    cm = confusion_matrix(y_test, y_pred)
-    st.write(cm)
-
-    #menggunakan naive bayes dengan imputan rata-rata
-    X_train, X_test, y_train, y_test = train_test_split(X_rata_resampled, y_rata_resampled, test_size=0.2, random_state=42)
-    # Decision Tree Model
-    model = GaussianNB()
-    model.fit(X_train, y_train)
-    y_pred = model.predict(X_test)
-    st.markdown("### Model menggunakan Naive bayes dengan imputan rata-rata")
-
-    # Metrics
-    accuracy_4 = accuracy_score(y_test, y_pred)
-    precision_4 = precision_score(y_test, y_pred)
-    recall_4 = recall_score(y_test, y_pred)
-    f1_4 = f1_score(y_test, y_pred)
-
-    st.write(f"Accuracy: {accuracy_4:.2f}")
-    st.write(f"Precision: {precision_4:.2f}")
-    st.write(f"Recall: {recall_4:.2f}")
-    st.write(f"F1 Score: {f1_4:.2f}")
-
-    # Confusion Matrix
-    st.markdown("### Confusion Matrix")
-    cm = confusion_matrix(y_test, y_pred)
-    st.write(cm)
-
-    #menggunakan KNN dengan imputan KNN
-    X_train, X_test, y_train, y_test = train_test_split(X_knn_resampled, y_knn_resampled, test_size=0.2, random_state=42)
-    st.markdown("### Model KNN bayes dengan imputan KNN")
-    # Decision Tree Model
-    model = KNeighborsClassifier(n_neighbors=3)
-    model.fit(X_train, y_train)
-    y_pred = model.predict(X_test)
-
-    accuracy_5 = accuracy_score(y_test, y_pred)
-    precision_5 = precision_score(y_test, y_pred)
-    recall_5 = recall_score(y_test, y_pred)
-    f1_5 = f1_score(y_test, y_pred)
-
-    st.write(f"Accuracy: {accuracy_5:.2f}")
-    st.write(f"Precision: {precision_5:.2f}")
-    st.write(f"Recall: {recall_5:.2f}")
-    st.write(f"F1 Score: {f1_5:.2f}")
-
-    # Confusion Matrix
-    st.markdown("### Confusion Matrix")
-    cm = confusion_matrix(y_test, y_pred)
-    st.write(cm)
-
-    #menggunakan KNN dengan imputan rata-rata
-    X_train, X_test, y_train, y_test = train_test_split(X_rata_resampled, y_rata_resampled, test_size=0.2, random_state=42)
-    st.markdown("### Model menggunakan KNN dengan imputan rata-rata")
-    # Decision Tree Model
-    model = KNeighborsClassifier(n_neighbors=3)
-    model.fit(X_train, y_train)
-    y_pred = model.predict(X_test)
-
-    # Metrics
-    accuracy_6 = accuracy_score(y_test, y_pred)
-    precision_6 = precision_score(y_test, y_pred)
-    recall_6 = recall_score(y_test, y_pred)
-    f1_6 = f1_score(y_test, y_pred)
-
-    st.write(f"Accuracy: {accuracy_6:.2f}")
-    st.write(f"Precision: {precision_6:.2f}")
-    st.write(f"Recall: {recall_6:.2f}")
-    st.write(f"F1 Score: {f1_6:.2f}")
-
 elif menu == "Perbandingan Model":
     st.write(perbandingan)
