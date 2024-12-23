@@ -327,7 +327,7 @@ elif menu == "Proses manual":
     X_test = np.array(X_test)
     y_test = np.array(y_test)
     data = [X_train[i] + [y_train[i]] for i in range(len(X_train))]
-    data = data[:3]
+    data = data[:100]
     sample = [X_test[i] + [y_test[i]] for i in range(len(X_test))]
 
     # Membuat decision tree
