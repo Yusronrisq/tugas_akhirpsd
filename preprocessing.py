@@ -418,3 +418,13 @@ elif menu == "Evaluasi Model":
     st.write(cm)
 elif menu == "Perbandingan Model":
     st.write(perbandingan)
+    metric = st.selectbox("Pilih metrik untuk ditampilkan:", ['Akurasi', 'Precision', 'Recall', 'F1 Score'])
+
+    # Plotting
+    fig, ax = plt.subplots(figsize=(10, 6))
+    ax.bar(perbandingan['Model'], perbandingan[metric], alpha=0.7, color='skyblue')
+    ax.set_title(f'Perbandingan {metric}', fontsize=14)
+    ax.set_xlabel('Model', fontsize=12)
+    ax.set_ylabel(metric, fontsize=12)
+    ax.set_xticklabels(perbandingan['Model'], rotation=270, ha='center', fontsize=10)
+    st.pyplot(fig)
