@@ -23,148 +23,78 @@ menu = st.sidebar.selectbox(
 
 # Upload Dataset
 data = pd.read_csv('water_potabilitys.csv')
+X = data.drop(columns=['Potability'])
+y = data['Potability']
 imputer = KNNImputer(n_neighbors=10)
-data_rata = data.fillna(data.mean())
-data_KNN = pd.DataFrame(imputer.fit_transform(data), columns=data.columns)
-scaler = MinMaxScaler()
-X_knn = scaler.fit_transform(data_KNN.drop("Potability", axis=1))
-X_rata = scaler.fit_transform(data_KNN.drop("Potability", axis=1))
-y_knn = data_KNN["Potability"]
-y_rata = data_KNN["Potability"]
-smote = SMOTE()
-X_knn_resampled, y_knn_resampled = smote.fit_resample(X_knn, y_knn)
-X_rata_resampled, y_rata_resampled = smote.fit_resample(X_rata, y_rata)
+X_rata = X.fillna(X.mean())
+X_KNN = pd.DataFrame(imputer.fit_transform(X), columns=X.columns)
+scaler = MinMaxScaler(feature_range=(0, 1))
+X_knn = pd.DataFrame(scaler.fit_transform(X_KNN), columns=X.columns)
+X_rata = pd.DataFrame(scaler.fit_transform(X_rata), columns=X.columns)
+smote = SMOTE(random_state=42)
+X_knn_resampled, y_knn_resampled = smote.fit_resample(X_knn, y)
+X_rata_resampled, y_rata_resampled = smote.fit_resample(X_rata, y)
 X_train, X_test, y_train, y_test = train_test_split(X_knn_resampled, y_knn_resampled, test_size=0.2, random_state=42)
-# Decision Tree Model dengan KNN
-model = DecisionTreeClassifier()
-model.fit(X_train, y_train)
-y_pred = model.predict(X_test)
-accuracy_1 = accuracy_score(y_test, y_pred)
-precision_1 = precision_score(y_test, y_pred)
-recall_1 = recall_score(y_test, y_pred)
-f1_1 = f1_score(y_test, y_pred)
-#menggunakan decision tree dengan imputan rata-rata
-X_train, X_test, y_train, y_test = train_test_split(X_rata_resampled, y_rata_resampled, test_size=0.2, random_state=42)
-model = DecisionTreeClassifier()
-model.fit(X_train, y_train)
-y_pred = model.predict(X_test)
-accuracy_2 = accuracy_score(y_test, y_pred)
-precision_2 = precision_score(y_test, y_pred)
-recall_2 = recall_score(y_test, y_pred)
-f1_2 = f1_score(y_test, y_pred)
-#menggunakan naive bayes dengan imputan KNN
-X_train, X_test, y_train, y_test = train_test_split(X_knn_resampled, y_knn_resampled, test_size=0.2, random_state=42)
-model = GaussianNB()
-model.fit(X_train, y_train)
-y_pred = model.predict(X_test)
-accuracy_3 = accuracy_score(y_test, y_pred)
-precision_3 = precision_score(y_test, y_pred)
-recall_3 = recall_score(y_test, y_pred)
-f1_3 = f1_score(y_test, y_pred)
+def evaluate_model(X, y, model, title, test_size):
+    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=test_size, random_state=42)
+    model.fit(X_train, y_train)
+    y_pred = model.predict(X_test)
+    # Menghitung metrik evaluasi
+    accuracy = accuracy_score(y_test, y_pred)
+    precision = precision_score(y_test, y_pred)
+    recall = recall_score(y_test, y_pred)
+    f1 = f1_score(y_test, y_pred)
 
-#menggunakan naive bayes dengan imputan rata-rata
-X_train, X_test, y_train, y_test = train_test_split(X_rata_resampled, y_rata_resampled, test_size=0.2, random_state=42)
-model = GaussianNB()
-model.fit(X_train, y_train)
-y_pred = model.predict(X_test)
-accuracy_4 = accuracy_score(y_test, y_pred)
-precision_4 = precision_score(y_test, y_pred)
-recall_4 = recall_score(y_test, y_pred)
-f1_4 = f1_score(y_test, y_pred)
+    # Menampilkan confusion matrix
+    conf_matrix = confusion_matrix(y_test, y_pred)
+    plt.figure(figsize=(4, 3))
+    sns.heatmap(conf_matrix, annot=True, fmt='d', cmap='Blues',
+                xticklabels=['Negatif', 'Positif'], yticklabels=['Negatif', 'Positif'])
+    plt.xlabel('Prediksi')
+    plt.ylabel('Aktual')
+    plt.title(title)
+    plt.show()
 
-#menggunakan KNN dengan imputan KNN
-X_train, X_test, y_train, y_test = train_test_split(X_knn_resampled, y_knn_resampled, test_size=0.2, random_state=42)
-model = KNeighborsClassifier(n_neighbors=3)
-model.fit(X_train, y_train)
-y_pred = model.predict(X_test)
-accuracy_5 = accuracy_score(y_test, y_pred)
-precision_5 = precision_score(y_test, y_pred)
-recall_5 = recall_score(y_test, y_pred)
-f1_5 = f1_score(y_test, y_pred)
-#menggunakan KNN dengan imputan rata-rata
-X_train, X_test, y_train, y_test = train_test_split(X_rata_resampled, y_rata_resampled, test_size=0.2, random_state=42)
-model = KNeighborsClassifier(n_neighbors=3)
-model.fit(X_train, y_train)
-y_pred = model.predict(X_test)
-accuracy_6 = accuracy_score(y_test, y_pred)
-precision_6 = precision_score(y_test, y_pred)
-recall_6 = recall_score(y_test, y_pred)
-f1_6 = f1_score(y_test, y_pred)
+    # Menampilkan hasil metrik evaluasi
+    print(title)
+    print(f'Akurasi: {accuracy:.2f}')
+    print(f'Precision: {precision:.2f}')
+    print(f'Recall: {recall:.2f}')
+    print(f'F1 Score: {f1:.2f}')
 
-accuracy_knn_decision_tree = round(accuracy_1,2)
-precision_knn_decision_tree = round(precision_1,2)
-recall_knn_decision_tree = round(recall_1,2)
-f1_knn_decision_tree = round(f1_1,2)
+    return accuracy, precision, recall, f1
 
-accuracy_rata_decision_tree = round(accuracy_2,2)
-precision_rata_decision_tree = round(precision_2,2)
-recall_rata_decision_tree = round(recall_2,2)
-f1_rata_decision_tree = round(f1_2,2)
+# Data dan model untuk evaluasi
+results = []
+models = [
+    # menggunakan train 90 dan test 10
+    ("Decision Tree dengan KNN train 90", DecisionTreeClassifier(random_state=42), X_knn_resampled, y_knn_resampled, 0.1),
+    ("Decision Tree dengan Rata-rata train 90", DecisionTreeClassifier(random_state=42), X_rata_resampled, y_rata_resampled, 0.1),
+    ("Naive Bayes dengan KNN train 90", GaussianNB(), X_knn_resampled, y_knn_resampled, 0.1),
+    ("Naive Bayes dengan Rata-rata train 90", GaussianNB(), X_rata_resampled, y_rata_resampled, 0.1),
+    ("KNN dengan KNN train 90", KNeighborsClassifier(n_neighbors=3), X_knn_resampled, y_knn_resampled, 0.1),
+    ("KNN dengan Rata-rata train 90", KNeighborsClassifier(n_neighbors=3), X_rata_resampled, y_rata_resampled, 0.1),
+    # menggunakan train 80 dan test 20
+    ("Decision Tree dengan KNN train 80", DecisionTreeClassifier(random_state=42), X_knn_resampled, y_knn_resampled, 0.2),
+    ("Decision Tree dengan Rata-rata train 80", DecisionTreeClassifier(random_state=42), X_rata_resampled, y_rata_resampled, 0.2),
+    ("Naive Bayes dengan KNN train 80", GaussianNB(), X_knn_resampled, y_knn_resampled, 0.2),
+    ("Naive Bayes dengan Rata-rata train 80", GaussianNB(), X_rata_resampled, y_rata_resampled, 0.2),
+    ("KNN dengan KNN train 80", KNeighborsClassifier(n_neighbors=3), X_knn_resampled, y_knn_resampled, 0.2),
+    ("KNN dengan Rata-rata train 80", KNeighborsClassifier(n_neighbors=3), X_rata_resampled, y_rata_resampled, 0.2),
+    # menggunakan train 70 dan test 30
+    ("Decision Tree dengan KNN train 70", DecisionTreeClassifier(random_state=42), X_knn_resampled, y_knn_resampled, 0.3),
+    ("Decision Tree dengan Rata-rata train 70", DecisionTreeClassifier(random_state=42), X_rata_resampled, y_rata_resampled, 0.3),
+    ("Naive Bayes dengan KNN train 70", GaussianNB(), X_knn_resampled, y_knn_resampled, 0.3),
+    ("Naive Bayes dengan Rata-rata train 70", GaussianNB(), X_rata_resampled, y_rata_resampled, 0.3),
+    ("KNN dengan KNN train 70", KNeighborsClassifier(n_neighbors=3), X_knn_resampled, y_knn_resampled, 0.3),
+    ("KNN dengan Rata-rata train 70", KNeighborsClassifier(n_neighbors=3), X_rata_resampled, y_rata_resampled, 0.3)
+]
+# Loop untuk evaluasi setiap model
+for title, model, X, y, test_size in models:
+    accuracy, precision, recall, f1 = evaluate_model(X, y, model, title, test_size)
+    results.append((title, accuracy, precision, recall, f1))
 
-accuracy_knn_naive_bayes = round(accuracy_3,2)
-precision_knn_naive_bayes = round(precision_3,2)
-recall_knn_naive_bayes = round(recall_3,2)
-f1_knn_naive_bayes = round(f1_3,2)
-
-accuracy_rata_naive_bayes = round(accuracy_4,2)
-precision_rata_naive_bayes = round(precision_4,2)
-recall_rata_naive_bayes = round(recall_4,2)
-f1_rata_naive_bayes = round(f1_4,2)
-
-accuracy_knn_KNN = round(accuracy_5,2)
-precision_knn_KNN = round(precision_5,2)
-recall_knn_KNN = round(recall_5,2)
-f1_knn_KNN = round(f1_5,2)
-
-accuracy_rata_KNN = round(accuracy_6,2)
-precision_rata_KNN = round(precision_6,2)
-recall_rata_KNN = round(recall_6,2)
-f1_rata_KNN = round(f1_6,2)
-
-hehe = {
-    'Model': [
-        'Decision Tree dengan Imputasi KNN',
-        'Decision Tree dengan Imputasi Nilai Rata-rata',
-        'Naive Bayes dengan Imputasi KNN',
-        'Naive Bayes dengan Imputasi Nilai Rata-rata',
-        'KNN dengan Imputasi KNN',
-        'KNN dengan Imputasi Nilai Rata-rata'
-    ],
-    'Akurasi': [
-        accuracy_knn_decision_tree,
-        accuracy_rata_decision_tree,
-        accuracy_knn_naive_bayes,
-        accuracy_rata_naive_bayes,
-        accuracy_knn_KNN,
-        accuracy_rata_KNN
-    ],
-    'Precision': [
-        precision_knn_decision_tree,
-        precision_rata_decision_tree,
-        precision_knn_naive_bayes,
-        precision_rata_naive_bayes,
-        precision_knn_KNN,
-        precision_rata_KNN
-    ],
-    'Recall': [
-        recall_knn_decision_tree,
-        recall_rata_decision_tree,
-        recall_knn_naive_bayes,
-        recall_rata_naive_bayes,
-        recall_knn_KNN,
-        recall_rata_KNN
-    ],
-    'F1 Score': [
-        f1_knn_decision_tree,
-        f1_rata_decision_tree,
-        f1_knn_naive_bayes,
-        f1_rata_naive_bayes,
-        f1_knn_KNN,
-        f1_rata_KNN
-    ]
-}
-
-perbandingan = pd.DataFrame(hehe)
+perbandingan = pd.DataFrame(results, columns=["Model", "Akurasi", "Precision", "Recall", "F1 Score"])
 
 if menu == "Deskripsi Dataset":
     st.write("### Dataset")
@@ -218,7 +148,7 @@ elif menu == "Proses manual":
     imputation_options = ["KNN", "Rata-rata"]
     selected_imputation = st.selectbox("Pilih Metode Imputasi", imputation_options)
     test_options = ['10','20','30']
-    selected_test = st.selectbox("Pilih Metode Imputasi", test_options)
+    selected_test = st.selectbox("Pilih Data Test", test_options)
     if selected_imputation == "KNN":
         X_resampled, y_resampled = X_knn_resampled, y_knn_resampled
     else:
@@ -230,139 +160,131 @@ elif menu == "Proses manual":
         X_train, X_test, y_train, y_test = train_test_split(X_resampled, y_resampled, test_size=0.2, random_state=42)
     else:
         X_train, X_test, y_train, y_test = train_test_split(X_resampled, y_resampled, test_size=0.3, random_state=42)
-    # Fungsi untuk menghitung Gini Index
-    def gini_index(groups, classes):
-        total_instances = sum([len(group) for group in groups])
-        gini = 0.0
+        
+    def gini_impurity(y):
+        classes, counts = np.unique(y, return_counts=True)
+        prob_squared = np.sum((counts / len(y)) ** 2)
+        return 1 - prob_squared
 
-        for group in groups:
-            size = len(group)
-            if size == 0:
-                continue
+    # Fungsi untuk membagi dataset berdasarkan threshold
 
-            score = 0.0
-            for class_val in classes:
-                proportion = [row[-1] for row in group].count(class_val) / size
-                score += proportion ** 2
+    def split_dataset(X, y, feature, threshold):
+        left_indices = X[:, feature] <= threshold
+        right_indices = X[:, feature] > threshold
+        return X[left_indices], y[left_indices], X[right_indices], y[right_indices]
 
-            gini += (1.0 - score) * (size / total_instances)
+    # Fungsi untuk mencari split terbaik
+    def best_split(X, y):
+        n_features = X.shape[1]
+        best_feature, best_threshold = None, None
+        best_gini = float('inf')
+        best_splits = None
 
-        return gini
+        for feature in range(n_features):
+            thresholds = np.unique(X[:, feature])
+            for threshold in thresholds:
+                X_left, y_left, X_right, y_right = split_dataset(X, y, feature, threshold)
+                
+                if len(y_left) == 0 or len(y_right) == 0:
+                    continue
 
-    # Membagi data berdasarkan nilai split
-    def split_data(index, value, dataset):
-        left, right = [], []
-        for row in dataset:
-            if row[index] < value:
-                left.append(row)
-            else:
-                right.append(row)
-        return left, right
+                # Hitung Gini Impurity
+                gini_left = gini_impurity(y_left)
+                gini_right = gini_impurity(y_right)
 
-    # Memilih split terbaik
-    def get_best_split(dataset):
-        class_values = list(set(row[-1] for row in dataset))
-        best_index, best_value, best_score, best_groups = None, None, float('inf'), None
+                gini_split = (len(y_left) * gini_left + len(y_right) * gini_right) / len(y)
 
-        for index in range(len(dataset[0]) - 1):
-            for row in dataset:
-                groups = split_data(index, row[index], dataset)
-                gini = gini_index(groups, class_values)
-                st.write(f"Evaluating split: Feature[{index}], Value[{row[index]}], Gini[{gini}]")
-                if gini < best_score:
-                    best_index, best_value, best_score, best_groups = index, row[index], gini, groups
-                    st.write(f"Best split updated: Feature[{best_index}], Value[{best_value}], Gini[{best_score}]")
+                if gini_split < best_gini:
+                    best_gini = gini_split
+                    best_feature = feature
+                    best_threshold = threshold
+                    best_splits = (X_left, y_left, X_right, y_right)
 
-        return {'index': best_index, 'value': best_value, 'groups': best_groups}
+        return best_feature, best_threshold, best_gini, best_splits
 
-    # Membuat leaf node
-    def to_terminal(group):
-        outcomes = [row[-1] for row in group]
-        return max(set(outcomes), key=outcomes.count)
+    # Definisi Node
+    class DecisionNode:
+        def __init__(self, feature=None, threshold=None, left=None, right=None, value=None):
+            self.feature = feature
+            self.threshold = threshold
+            self.left = left
+            self.right = right
+            self.value = value
 
-    # Membagi node
-    def split(node, max_depth, min_size, depth):
-        left, right = node['groups']
-        del(node['groups'])
+    # Fungsi untuk membangun pohon keputusan
 
-        st.write(f"Splitting at depth {depth}: Left size[{len(left)}], Right size[{len(right)}]")
+    def build_tree(X, y, depth=0, max_depth=None):
+        # Kondisi berhenti: Semua label sama atau kedalaman maksimum tercapai
+        if len(np.unique(y)) == 1 or (max_depth is not None and depth >= max_depth):
+            return DecisionNode(value=np.bincount(y).argmax())
 
-        if not left or not right:
-            node['left'] = node['right'] = to_terminal(left + right)
-            st.write(f"Leaf node created with value: {node['left']}")
+        feature, threshold, gini, splits = best_split(X, y)
+
+        if feature is None or splits is None:
+            return DecisionNode(value=np.bincount(y).argmax())
+
+        X_left, y_left, X_right, y_right = splits
+        st.write(f"kedalaman {depth}: membagi fitur {feature} dengan batas {threshold:.4f} dan Gini {gini:.4f}")
+
+        # Rekursi ke subtree kiri dan kanan
+        left_node = build_tree(X_left, y_left, depth + 1, max_depth)
+        right_node = build_tree(X_right, y_right, depth + 1, max_depth)
+
+        return DecisionNode(feature=feature, threshold=threshold, left=left_node, right=right_node)
+
+    # Fungsi prediksi dari pohon keputusan
+    def predict_tree(tree, X):
+        if tree.value is not None:
+            return tree.value
+        
+        if X[tree.feature] <= tree.threshold:
+            return predict_tree(tree.left, X)
+        else:
+            return predict_tree(tree.right, X)
+
+    # Fungsi prediksi untuk dataset
+    def predict(dataset, tree):
+        return np.array([predict_tree(tree, row) for row in dataset])
+    
+    def plot_tree(node, x=0.5, y=1, dx=0.25, dy=0.1, ax=None):
+        if ax is None:
+            fig, ax = plt.subplots(figsize=(12, 8))
+            ax.set_xlim(0, 1)
+            ax.set_ylim(0, 1)
+            ax.axis('off')
+
+        if node.value is not None:
+            ax.text(x, y, f"Leaf\nValue: {node.value}", ha='center', va='center',
+                    bbox=dict(facecolor='lightblue', edgecolor='black'))
             return
 
-        if depth >= max_depth:
-            node['left'], node['right'] = to_terminal(left), to_terminal(right)
-            st.write(f"Max depth reached. Creating leaf nodes: Left[{node['left']}], Right[{node['right']}]")
-            return
+        ax.text(x, y, f"Feature {node.feature}\n<= {node.threshold}", ha='center', va='center',
+                bbox=dict(facecolor='lightgreen', edgecolor='black'))
 
-        if len(left) <= min_size:
-            node['left'] = to_terminal(left)
-            st.write(f"Left group too small. Creating leaf node: {node['left']}")
-        else:
-            node['left'] = get_best_split(left)
-            split(node['left'], max_depth, min_size, depth + 1)
+        left_x, right_x = x - dx / 2, x + dx / 2
+        ax.plot([x, left_x], [y, y - dy], color='black')
+        ax.plot([x, right_x], [y, y - dy], color='black')
 
-        if len(right) <= min_size:
-            node['right'] = to_terminal(right)
-            st.write(f"Right group too small. Creating leaf node: {node['right']}")
-        else:
-            node['right'] = get_best_split(right)
-            split(node['right'], max_depth, min_size, depth + 1)
+        plot_tree(node.left, x=left_x, y=y - dy, dx=dx / 2, dy=dy, ax=ax)
+        plot_tree(node.right, x=right_x, y=y - dy, dx=dx / 2, dy=dy, ax=ax)
 
-    # Membangun decision tree
-    def build_tree(train, max_depth, min_size):
-        root = get_best_split(train)
-        split(root, max_depth, min_size, 1)
-        return root
+    # Pemanggilan untuk melatih dan memprediksi
+    # Pastikan dataset terpisah dalam X_train, X_test, y_train, y_test seperti kode sebelumnya
 
-    # Prediksi menggunakan decision tree
-    def predict(node, row):
-        if row[node['index']] < node['value']:
-            if isinstance(node['left'], dict):
-                return predict(node['left'], row)
-            else:
-                return node['left']
-        else:
-            if isinstance(node['right'], dict):
-                return predict(node['right'], row)
-            else:
-                return node['right']
+    X_train_np = X_train.to_numpy()
+    y_train_np = y_train.to_numpy()
+    X_test_np = X_test.to_numpy()
 
-    X_train = np.array(X_train)
-    y_train = np.array(y_train)
-    X_test = np.array(X_test)
-    y_test = np.array(y_test)
-    data = [X_train[i] + [y_train[i]] for i in range(len(X_train))]
-    data = data[:100]
-    sample = [X_test[i] + [y_test[i]] for i in range(len(X_test))]
+    decision_tree = build_tree(X_train_np, y_train_np, max_depth=3)
+    fig, ax = plt.subplots(figsize=(12, 8))
+    plot_tree(decision_tree,x=0.5, y=1, dx=0.1, dy=0.2, ax=ax)
+    st.pyplot(fig)
+    y_pred = predict(X_test_np, decision_tree)
 
-    # Membuat decision tree
-    max_depth = 3
-    min_size = 1
-    tree = build_tree(data, max_depth, min_size)
-    st.write("\nFinal Decision Tree:", tree)
-
-    # Prediksi contoh
-    result = predict(tree, sample)
-    st.write("\nPrediction for sample:", result)
-    y_pred = model.predict(X_test)
-    # Evaluasi model
-    st.markdown("### Evaluasi Model")
-    st.write(f"Model: decesion tree dengan Imputasi: {selected_imputation}")
-    accuracy = accuracy_score(y_test, y_pred)
-    precision = precision_score(y_test, y_pred, zero_division=1)
-    recall = recall_score(y_test, y_pred, zero_division=1)
-    f1 = f1_score(y_test, y_pred, zero_division=1)
+    # Hitung akurasi
+    accuracy = np.mean(y_pred == y_test.to_numpy())
     st.write(f"Accuracy: {accuracy:.2f}")
-    st.write(f"Precision: {precision:.2f}")
-    st.write(f"Recall: {recall:.2f}")
-    st.write(f"F1 Score: {f1:.2f}")
-    # Confusion Matrix
-    st.markdown("### Confusion Matrix")
-    cm = confusion_matrix(y_test, y_pred)
-    st.write(cm)
+
 elif menu == "Evaluasi Model":
     X_resampled, y_resampled = X_rata_resampled, y_rata_resampled
     st.write("## Splitting Data")
@@ -386,7 +308,7 @@ elif menu == "Evaluasi Model":
     elif selected_model == "KNN":
         model = KNeighborsClassifier(n_neighbors=3)
     test_options = ['10','20','30']
-    selected_test = st.selectbox("Pilih Metode Imputasi", test_options)
+    selected_test = st.selectbox("Pilih data test", test_options)
     if selected_imputation == "KNN":
         X_resampled, y_resampled = X_knn_resampled, y_knn_resampled
     else:
